@@ -18,6 +18,7 @@ class ApiGet:
         self.nam.finished.connect(self.handle_response)
         self.nam.get(req)
 
+    # todo wzorzec dekorator
     @staticmethod
     def handle_response(reply):
 
