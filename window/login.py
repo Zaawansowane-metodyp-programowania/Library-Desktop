@@ -64,6 +64,7 @@ class Login(QDialog):
         if self.response == 'ConnectionError':
             QMessageBox.critical(self, "Błąd", 'Błąd połączenia z internetem! Sprawdź połączenie')
             return
+        print(self.response)
         if self.response.status_code == 400:
             QMessageBox.critical(self, "Niepoprawne dane logowania", self.response.text)
             self.edit_login.setText('')

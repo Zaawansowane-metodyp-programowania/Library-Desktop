@@ -4,9 +4,6 @@ import requests
 
 
 class InvalidLoginOrPassError(Exception):
-    def __init__(self):
-        pass
-
     def __str__(self):
         return 'Niepoprawne dane logowania'
 
@@ -27,9 +24,9 @@ def post_request(url, data, q=None):
     return post_response
 
 
-if __name__ == '__main__':
-    response = post_request('https://library-api-app.azurewebsites.net/api/account/login', {
-        "email": "admin@example.com",
-        "password": "admin1"
-    })
-    print(type(response))
+# if __name__ == '__main__':
+#     response = post_request('https://library-api-app.azurewebsites.net/api/account/login', {
+#         "email": "admin@example.com",
+#         "password": "admin1"
+#     })
+#     print(type(response))

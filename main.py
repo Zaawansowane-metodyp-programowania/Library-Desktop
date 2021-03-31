@@ -10,6 +10,7 @@ from qt_material import apply_stylesheet
 from configparse import read_style
 from window.login import Login
 from window.main_window import MainWindow
+from window import run_window
 
 
 class MainApplication(QApplication):
@@ -28,7 +29,7 @@ class MainApplication(QApplication):
         self.setStyle('Fusion')
 
 
-def main():
+if __name__ == '__main__':
     app = MainApplication(sys.argv)
 
     # Tłumaczenie
@@ -45,19 +46,4 @@ def main():
         apply_stylesheet(app, theme='dark_teal.xml', invert_secondary=True)
 
     app.setFont(QFont('', 12))
-
-    window = Login()
-    dec = window.exec_()
-    if dec == QtWidgets.QDialog.Accepted:
-        result = json.loads(window.response.text)
-        print(result)
-        window = MainWindow(result)
-        window.setContentsMargins(10, 10, 10, 10)
-    elif dec == QtWidgets.QDialog.Rejected:
-        sys.exit(0)
-
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()
+    run_window(app)
