@@ -8,8 +8,12 @@ class InvalidLoginOrPassError(Exception):
         return 'Niepoprawne dane logowania'
 
 
-def post_request(url, data, q=None):
+def post_request(url, data, token=None, q=None):
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
+    if token:
+        headers = {'Content-type': 'application/json',
+                   'Accept': 'application/json',
+                   'Authorization': 'Bearer {}'.format(token)}
     app_json = json.dumps(data)
     try:
         post_response = requests.post(url, data=app_json, headers=headers)
@@ -22,11 +26,3 @@ def post_request(url, data, q=None):
         except UnboundLocalError:
             q.put('ConnectionError')
     return post_response
-
-
-# if __name__ == '__main__':
-#     response = post_request('https://library-api-app.azurewebsites.net/api/account/login', {
-#         "email": "admin@example.com",
-#         "password": "admin1"
-#     })
-#     print(type(response))

@@ -1,5 +1,4 @@
 from PySide2 import QtGui
-from PySide2 import QtCore
 from PySide2.QtWidgets import QMainWindow, QAction
 from qt_material import QtStyleTools, list_themes
 

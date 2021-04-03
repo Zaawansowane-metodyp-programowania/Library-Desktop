@@ -8,9 +8,10 @@ from PySide2.QtWidgets import QApplication
 from qt_material import apply_stylesheet
 
 from configparse import read_style
+# from window import run_window
+from window import run_window
 from window.login import Login
 from window.main_window import MainWindow
-from window import run_window
 
 
 class MainApplication(QApplication):
@@ -46,4 +47,7 @@ if __name__ == '__main__':
         apply_stylesheet(app, theme='dark_teal.xml', invert_secondary=True)
 
     app.setFont(QFont('', 12))
+
+
     run_window(app)
+    app.exec_()

@@ -4,10 +4,11 @@ import threading
 
 from PySide2 import QtGui
 from PySide2.QtWidgets import QDialog, QDialogButtonBox, QLabel, QApplication, QLineEdit, QFormLayout, \
-    QMessageBox
+    QMessageBox, QPushButton, QSpacerItem, QSizePolicy
 
 from api_connect.post_request import post_request
 from window import URL
+from window.register import Register
 
 
 class Login(QDialog):
@@ -15,8 +16,9 @@ class Login(QDialog):
     def __init__(self):
         super(Login, self).__init__()
 
-        self.url = 'account/login'
+        self.url_login = 'account/login'
         self.response = None
+        self.jsons = {}
 
         self.setWindowTitle('Logowanie')
         self.setWindowIcon(QtGui.QIcon('resources/library_icon.png'))
@@ -26,23 +28,32 @@ class Login(QDialog):
         self.edit_passwd = QLineEdit()
         self.edit_passwd.setEchoMode(QLineEdit.Password)
         self.setMinimumWidth(400)
+        self.btn_register = QPushButton('Utwórz nowe konto')
+        self.btn_register.setStyleSheet("color: #17a2b8; border-color : #17a2b8")
 
         q_btn = QDialogButtonBox.Ok | QDialogButtonBox.Cancel
 
         self.buttonBox = QDialogButtonBox(q_btn)
         self.buttonBox.accepted.connect(self.login_in)
         self.buttonBox.rejected.connect(self.reject)
+        self.btn_register.clicked.connect(self.register)
 
         self.layout = QFormLayout()
         self.layout.setWidget(0, QFormLayout.LabelRole, self.lbl_login)
         self.layout.setWidget(0, QFormLayout.FieldRole, self.edit_login)
         self.layout.setWidget(1, QFormLayout.LabelRole, self.lbl_passwd)
         self.layout.setWidget(1, QFormLayout.FieldRole, self.edit_passwd)
+        self.layout.addRow(self.btn_register)
 
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
         self.show()
+
+    def register(self):
+        dialog = Register()
+        dialog.show()
+        dialog.exec_()
 
     def login_in(self):
         if not self.edit_login.text() or not self.edit_passwd.text():
@@ -50,12 +61,12 @@ class Login(QDialog):
             self.edit_login.setFocus()
             return
 
-        json = {
+        jsons = {
             "email": self.edit_login.text(),
             "password": self.edit_passwd.text()
         }
         que = queue.Queue()
-        x = threading.Thread(target=post_request, args=("".join([URL, self.url]), json, que))
+        x = threading.Thread(target=post_request, args=("".join([URL, self.url_login]), jsons, None, que))
 
         x.start()
         x.join()
