@@ -14,6 +14,7 @@ def run_window(app=None):
         from window.main_window import MainWindow
         window = MainWindow(result)
         window.setContentsMargins(10, 10, 10, 10)
+        window.show()
     elif dec == QtWidgets.QDialog.Rejected:
         sys.exit(0)
     sys.exit(app.exec_())

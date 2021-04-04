@@ -11,9 +11,7 @@ class InvalidLoginOrPassError(Exception):
 def post_request(url, data, token=None, q=None):
     headers = {'Content-type': 'application/json', 'Accept': 'application/json'}
     if token:
-        headers = {'Content-type': 'application/json',
-                   'Accept': 'application/json',
-                   'Authorization': 'Bearer {}'.format(token)}
+        headers.update({'Authorization': 'Bearer {}'.format(token)})
     app_json = json.dumps(data)
     try:
         post_response = requests.post(url, data=app_json, headers=headers)

@@ -19,6 +19,10 @@ class MainWidget(Widget):
     def __init__(self, user):
         super(MainWidget, self).__init__(user)
         self.que = queue.Queue()
+        self.page_number = 1
+        self.sorted_by = None
+        self.sorted_direction = None
+        self._txt_change_password = 'Zmiana hasła'
 
         # Layouty
         self.layout = QVBoxLayout()
@@ -31,8 +35,9 @@ class MainWidget(Widget):
         self.btn_library = QPushButton('Biblioteka')
         self.btn_profile = QPushButton('Profil')
         self.btn_permission = QPushButton('Utwórz konto z uprawnieniami')
-        self.btn_change_passwd = QPushButton('Zmiana hasła')
+        self.btn_change_passwd = QPushButton(self._txt_change_password)
         self.btn_logout = QPushButton('Wylogowanie')
+        self.btn_add_book = QPushButton('Dodaj nową książkę')
 
         # Ustawienia widgetów
         self.menu_layout.setContentsMargins(-1, -1, -1, 25)
@@ -47,6 +52,10 @@ class MainWidget(Widget):
             self.btn_change_passwd.clicked.connect(self.on_change_passwd_admin_clicked)
             self.btn_profile.clicked.connect(self.on_profile_admin_clicked)
         self.btn_logout.clicked.connect(self.on_logout_clicked)
+        self.btn_next_page.clicked.connect(self.next_page)
+        self.btn_back_page.clicked.connect(self.back_page)
+        self.btn_add_book.clicked.connect(self.add_book)
+        self.edit_search.returnPressed.connect(self.search)
 
         # Przypisanie widgetów do layoutów
         self.menu_layout.addWidget(self.btn_home)
@@ -77,15 +86,58 @@ class MainWidget(Widget):
     def on_book_clicked(self):
         print("Books")
 
+    def next_page(self):
+        self.page_number += 1
+        if self.lbl_title.text() == 'Biblioteka':
+            self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
+                           sort_direction=self.sorted_direction)
+
+    def back_page(self):
+        self.page_number -= 1
+        if self.lbl_title.text() == 'Biblioteka':
+            self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
+                           sort_direction=self.sorted_direction)
+
+    def search(self):
+        self.page_number = 1
+        if self.lbl_title.text() == 'Biblioteka':
+            self.get_books(1, search=self.edit_search.text(), sort_direction=self.sorted_direction)
+
+    def sort_direction(self, text):
+        sort_dict = {
+            'Rosnąco': 0,
+            'Malejąco': 1
+        }
+        self.page_number = 1
+        self.sorted_direction = sort_dict.get(text)
+        if self.lbl_title.text() == 'Biblioteka':
+            self.get_books(1, sort_by=self.sorted_by, sort_direction=self.sorted_direction)
+
+    def sort_by(self, text):
+        sort_dict = {
+            'Sortuj według': None,
+            'Tytuł': 'BookName',
+            'Opis': 'BookDescription',
+            'Kategoria': 'Category',
+            'Wydawca': 'PublisherName',
+            'Data wydania': 'PublishDate'
+        }
+        self.page_number = 1
+        self.sorted_by = sort_dict.get(text)
+        if self.lbl_title.text() == 'Biblioteka':
+            self.get_books(1, sort_by=self.sorted_by, sort_direction=self.sorted_direction)
+
     def on_library_clicked(self):
         print("library")
         self.clear_layout()
-        self.lbl_title.setText('Wyszukaj poniżej')
+        self.lbl_title.setText('Biblioteka')
+        self.edit_search.setPlaceholderText('Wyszukaj i wciśnij ENTER')
         self.text_layout.addWidget(self.lbl_title)
-        self.text_layout.addWidget(self.lbl_title)
-        self.text_layout.addWidget(self.edit_search)
+        self.text_layout.addWidget(self.library)
         self.text_layout.addWidget(self.tbl_result)
-        self.get_books()
+        self.text_layout.addWidget(self.btn_add_book)
+        self.btn_add_book.setStyleSheet("color: #17a2b8; border-color : #17a2b8")
+        self.get_books(self.page_number)
 
     def on_profile_clicked(self):
         print("profile")
@@ -116,7 +168,7 @@ class MainWidget(Widget):
     def on_change_passwd_clicked(self):
         print("Change password")
         self.clear_layout()
-        self.lbl_title.setText('Zmiana hasła')
+        self.lbl_title.setText(self._txt_change_password)
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.dialog_password)
         self.edit_passwd1.setFocus()
@@ -124,7 +176,7 @@ class MainWidget(Widget):
     def on_change_passwd_admin_clicked(self):
         print("Change admin password")
         self.clear_layout()
-        self.lbl_title.setText('Zmiana hasła')
+        self.lbl_title.setText(self._txt_change_password)
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
@@ -161,21 +213,40 @@ class MainWidget(Widget):
         for row in range(row_count):
             for column in range(column_count):
                 item = (list(data[row].values())[column])
-                if column == 4:
+                if column == 4 and self.lbl_title.text() == 'Utwórz konto z uprawnieniami':
                     item = roleid.get(item)
                 self.tbl_result.setItem(row, column, QTableWidgetItem(str(item)))
 
         self.tbl_result.resizeColumnsToContents()
+        self.tbl_result.resizeRowsToContents()
 
-    def get_books(self):
+    def get_books(self, page_number, sort_by=None, sort_direction=None, search=None):
+        self.page_number = page_number
+        url = URL + self.get_books_api + f'?PageNumber={page_number}&PageSize=15'
+        if search:
+            url += f'&SearchPhrase={search}'
+        if sort_by:
+            url += f'&SortBy={sort_by}'
+        if sort_direction:
+            url += f'&SortDirection={sort_direction}'
+
         x = threading.Thread(
-            target=get_request,
-            args=("".join([URL, self.get_books_api, '?PageNumber=1&PageSize=15']), self.user.get('token'), self.que))
+            target=get_request, args=(url, self.user.get('token'), self.que))
 
         x.start()
         x.join()
 
         data = self.que.get()
+
+        if data.get('itemFrom') == 1:
+            self.btn_back_page.setEnabled(False)
+        else:
+            self.btn_back_page.setEnabled(True)
+        if page_number < data.get('totalPages'):
+            self.btn_next_page.setEnabled(True)
+        else:
+            self.btn_next_page.setEnabled(False)
+
         self.set_data(data.get('items'))
 
     def get_users(self):
@@ -194,6 +265,19 @@ class MainWidget(Widget):
         x = threading.Thread(
             target=get_request,
             args=(user_id_api, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        return data
+
+    def get_book_id(self, book_id):
+        self.btn_delete_book.clicked.connect(lambda: self.delete_book(book_id))
+        book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
+        x = threading.Thread(
+            target=get_request,
+            args=(book_id_api, self.user.get('token'), self.que))
 
         x.start()
         x.join()
@@ -238,6 +322,13 @@ class MainWidget(Widget):
         if data.status_code == 201:
             QMessageBox.information(self, "Nowe konto", 'Utworzono nowe konto.')
         print(data)
+
+    def add_book(self):
+        print("Add book")
+        self.clear_layout()
+        self.lbl_title.setText('Dodaj nową książkę')
+        self.text_layout.addWidget(self.lbl_title)
+        self.text_layout.addWidget(self.dialog_book)
 
     def change_passwd(self, user_id=None):
         if user_id is None:
@@ -305,9 +396,7 @@ class MainWidget(Widget):
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
-        if button_reply == QMessageBox.Yes:
-            pass
-        else:
+        if button_reply == QMessageBox.No:
             return
 
         x = threading.Thread(target=delete_request, args=(url_profile, token, self.que))
@@ -324,7 +413,83 @@ class MainWidget(Widget):
 
         if response.status_code == 500:
             QMessageBox.warning(self, "Błąd", "Nie można usunąć użytkownika, który wypożyczył książki!")
+
+
+    def delete_book(self, book_id):
+        token = self.user.get('token')
+        _book_id = book_id
+        book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
+        button_reply = QMessageBox.question(
+            self,
+            'Usuwanie',
+            "Czy na pewno chcesz usunąć tą książkę?\nOperacji tej nie można cofnąć.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if button_reply == QMessageBox.No:
             return
+
+        x = threading.Thread(target=delete_request, args=(book_id_api, token, self.que))
+
+        x.start()
+        x.join()
+
+        response = self.que.get()
+        if response.status_code == 204:
+            QMessageBox.information(self, "Usunięto", "Książka została usunięta!")
+            self.on_library_clicked()
+
+    def new_book(self, book_id=None):
+        token = self.user.get('token')
+        _book_id = book_id
+        flag_book = False
+
+        if self.edit_isbn.text() == '' or \
+                self.edit_book_name.text() == '' or \
+                self.edit_author.text() == '' or \
+                self.edit_publisher.text() == '' or \
+                self.edit_publish_date.text() == '' or \
+                self.edit_category.text() == '':
+            QMessageBox.warning(self, "Uwaga, błąd danych", "Należy wypełnić wymagane pola.")
+            return
+        if not self.edit_publish_date.text().isdigit():
+            QMessageBox.warning(self, "Błędne dane", 'Pole "Data wydania" należy wypełnić liczbą.')
+            self.edit_publish_date.setFocus()
+            return
+
+        jsons = {
+            "isbn": self.edit_isbn.text(),
+            "bookName": self.edit_book_name.text(),
+            "authorName": self.edit_author.text(),
+            "publisherName": self.edit_publisher.text(),
+            "publishDate": int(self.edit_publish_date.text()),
+            "category": self.edit_category.text(),
+            "language": self.edit_language_book.text(),
+            "bookDescription": self.edit_book_description.toPlainText()
+        }
+
+        if not book_id:
+            book_id_api = "".join([URL, self.get_books_api])
+            x = threading.Thread(target=post_request, args=(book_id_api, jsons, token, self.que))
+            title = 'Dodano'
+            descr = 'Dodano nową pozycję do biblioteki.'
+            flag_book = True
+        if book_id:
+            book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
+            x = threading.Thread(target=put_request, args=(book_id_api, jsons, token, self.que))
+            title = 'Zmieniono'
+            descr = 'Dane o książce zostały zaktualizowane.'
+            flag_book = True
+
+        if flag_book:
+            x.start()
+            x.join()
+
+            response = self.que.get()
+            print(response)
+            if response.status_code == 200 or 201:
+                QMessageBox.information(self, title, descr)
+                self.on_library_clicked()
 
     def change_profile(self):
         token = self.user.get('token')
@@ -362,4 +527,19 @@ class MainWidget(Widget):
         print(response)
         if response.status_code == 200:
             QMessageBox.information(self, "Zmiana danych", "Dane zostały pomyślnie zapisane!")
-            return
+
+    def change_book(self, book_id):
+        print("Change book id")
+        self.clear_layout()
+        self.lbl_title.setText('Edycja książki')
+        self.text_layout.addWidget(self.lbl_title)
+        jsons = self.get_book_id(book_id)
+        self.edit_isbn.setText(jsons.get('isbn'))
+        self.edit_book_name.setText(jsons.get('bookName'))
+        self.edit_author.setText(jsons.get('authorName'))
+        self.edit_publisher.setText(jsons.get('publisherName'))
+        self.edit_publish_date.setText(str(jsons.get('publishDate')))
+        self.edit_category.setText(jsons.get('category'))
+        self.edit_language_book.setText(jsons.get('language'))
+        self.edit_book_description.setPlainText(jsons.get('bookDescription'))
+        self.text_layout.addWidget(self.dialog_book)

@@ -1,7 +1,8 @@
 from PySide2.QtCore import Qt, QRegExp
 from PySide2.QtGui import QFont, QRegExpValidator
 from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QTableWidget, QDialog, QDialogButtonBox, QSpacerItem, \
-    QSizePolicy, QFormLayout, QAbstractItemView, QPushButton, QMessageBox, QComboBox
+    QSizePolicy, QFormLayout, QAbstractItemView, QPushButton, QMessageBox, QComboBox, QHBoxLayout, \
+    QVBoxLayout, QPlainTextEdit
 
 from window.home_text_browser import HomeTextBrowser
 
@@ -9,21 +10,28 @@ from window.home_text_browser import HomeTextBrowser
 class Widget(QWidget):
     def __init__(self, user):
         super(Widget, self).__init__()
+        self.library = QWidget()
         self.get_books_api = 'books'
         self.get_users_api = 'users'
         self.user = user
         self.h_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.v_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self._user_id = None
+        self._book_id = None
         self._role_id = 1
         self.dialog_password = QDialog()
         self.dialog_profile = QDialog()
         self.dialog_permission = QDialog()
+        self.dialog_book = QDialog()
         self.layout_password = QFormLayout()
         self.layout_profile = QFormLayout()
         self.layout_permission = QFormLayout()
+        self.layout_book = QFormLayout()
         self.regex = QRegExp('^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$')
         self.validator = QRegExpValidator(self.regex)
+        self.btn_cancel_box = QDialogButtonBox.Cancel
+        self.btn_ok_box = QDialogButtonBox.Ok
+        self.btn_save_box = QDialogButtonBox.Save
 
         # Strona główna
         self.lbl_home = HomeTextBrowser()
@@ -39,13 +47,22 @@ class Widget(QWidget):
         self.lbl_title = QLabel()
         self.edit_search = QLineEdit()
         self.tbl_result = QTableWidget()
+        self.btn_next_page = QPushButton('Następna >')
+        self.btn_back_page = QPushButton('< Poprzednia')
+        self.combo_sort_by = QComboBox()
+        self.combo_sort_direction = QComboBox()
+        self.layout_btn = QHBoxLayout()
+        self.layout_search = QHBoxLayout()
+        self.layout_library = QVBoxLayout()
+        self.library_widget()
 
         self.tbl_result.setAlternatingRowColors(True)
-        self.tbl_result.setCornerButtonEnabled(True)
+        self.tbl_result.setCornerButtonEnabled(False)
         self.tbl_result.verticalHeader().setSortIndicatorShown(True)
         self.tbl_result.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl_result.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.tbl_result.verticalHeader().setVisible(False)
+        self.tbl_result.setWordWrap(True)
+        # self.tbl_result.verticalHeader().setVisible(False)
         self.tbl_result.cellClicked.connect(self.cell_was_clicked)
 
         font = QFont()
@@ -53,6 +70,24 @@ class Widget(QWidget):
         font.setBold(True)
         self.lbl_title.setFont(font)
         self.lbl_title.setAlignment(Qt.AlignCenter)
+
+        # Edycja książki
+        self.edit_isbn = QLineEdit()
+        self.edit_book_name = QLineEdit()
+        self.edit_author = QLineEdit()
+        self.edit_publisher = QLineEdit()
+        self.edit_publish_date = QLineEdit()
+        self.edit_category = QLineEdit()
+        self.edit_isbn.setPlaceholderText('Wymagane')
+        self.edit_book_name.setPlaceholderText('Wymagane')
+        self.edit_author.setPlaceholderText('Wymagane')
+        self.edit_publisher.setPlaceholderText('Wymagane')
+        self.edit_publish_date.setPlaceholderText('Wymagane')
+        self.edit_category.setPlaceholderText('Wymagane')
+        self.edit_language_book = QLineEdit()
+        self.edit_book_description = QPlainTextEdit()
+        self.btn_delete_book = QPushButton('Usuń książkę')
+        self.book_id_widget()
 
         # Zmiana hasła
         self.edit_passwd1 = QLineEdit()
@@ -73,13 +108,36 @@ class Widget(QWidget):
         for i in reversed(range(self.layout_password.count())):
             self.layout_password.itemAt(i).widget().setParent(None)
 
+    def library_widget(self):
+        self.layout_search.addWidget(self.edit_search)
+        self.layout_search.addWidget(self.combo_sort_by)
+        self.layout_search.addWidget(self.combo_sort_direction)
+        self.layout_library.addLayout(self.layout_search)
+        self.layout_btn.addWidget(self.btn_back_page)
+        self.layout_btn.addItem(self.h_spacer)
+        self.layout_btn.addWidget(self.btn_next_page)
+        self.layout_library.addLayout(self.layout_btn)
+        self.library.setLayout(self.layout_library)
+        self.combo_sort_by.setMinimumWidth(160)
+        self.combo_sort_direction.setMinimumWidth(120)
+        self.combo_sort_by.addItem('Sortuj według')
+        self.combo_sort_by.addItem('Tytuł')
+        self.combo_sort_by.addItem('Opis')
+        self.combo_sort_by.addItem('Kategoria')
+        self.combo_sort_by.addItem('Wydawca')
+        self.combo_sort_by.addItem('Data wydania')
+        self.combo_sort_direction.addItem('Rosnąco')
+        self.combo_sort_direction.addItem('Malejąco')
+        self.combo_sort_by.activated[str].connect(self.sort_by)
+        self.combo_sort_direction.activated[str].connect(self.sort_direction)
+
     def change_password_widget(self):
         btn_box = QDialogButtonBox()
         lbl_passwd1 = QLabel('Wpisz stare hasło:')
         lbl_passwd2 = QLabel('Wpisz nowe hasło:')
         lbl_passwd3 = QLabel('Wpisz nowe hasło ponownie:')
 
-        btn_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        btn_box.setStandardButtons(self.btn_cancel_box | self.btn_ok_box)
         if self.user.get('roleId') != 3:
             self.layout_password.addRow(lbl_passwd1, self.edit_passwd1)
         self.layout_password.addRow(lbl_passwd2, self.edit_passwd2)
@@ -97,11 +155,11 @@ class Widget(QWidget):
         lbl_subname = QLabel('Nazwisko:')
         lbl_email = QLabel('Email:')
         btn_profile_box = QDialogButtonBox()
-        btn_profile_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Save)
+        btn_profile_box.setStandardButtons(self.btn_cancel_box | self.btn_save_box)
 
         self.edit_email.setValidator(self.validator)
 
-        self.layout_profile.setWidget(0, QFormLayout.FieldRole, self.btn_delete_profile)
+        self.layout_profile.addRow(self.btn_delete_profile)
         self.layout_profile.addRow(lbl_name, self.edit_name)
         self.layout_profile.addRow(lbl_subname, self.edit_subname)
         self.layout_profile.addRow(lbl_email, self.edit_email)
@@ -130,7 +188,7 @@ class Widget(QWidget):
         lbl_pass3 = QLabel('Wpisz hasło ponownie:')
         lbl_role = QLabel('Rola:')
 
-        btn_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        btn_box.setStandardButtons(self.btn_cancel_box | self.btn_ok_box)
         self.layout_permission.addRow(lbl_name, self.edit_new_name)
         self.layout_permission.addRow(lbl_subname, self.edit_new_surname)
         self.layout_permission.addRow(lbl_email, self.edit_new_email)
@@ -165,6 +223,42 @@ class Widget(QWidget):
         if int(self._user_id) == self.user.get('id') and self.lbl_title.text() == 'Usuwanie profilu':
             QMessageBox.warning(self, "Błąd!", "Nie można usunąć konta admina!")
             return
+
+        if self.lbl_title.text() == 'Biblioteka':
+            self._user_id = None
+            self._book_id = item.text()
+            self.change_book(item.text())
+
+    def book_id_widget(self):
+        btn_save_box = QDialogButtonBox()
+        lbl_isbn = QLabel('ISBN:')
+        lbl_book_name = QLabel('Tytuł książki:')
+        lbl_author_name = QLabel('Autor książki:')
+        lbl_publisher = QLabel('Wydawaca:')
+        lbl_publish_date = QLabel('Data wydania:')
+        lbl_category = QLabel('Kategoria:')
+        lbl_language = QLabel('Język książki:')
+        lbl_book_description = QLabel('Opis książki:')
+        self.btn_delete_book.setStyleSheet("color: #dc3545; border-color : #dc3545")
+
+        btn_save_box.setStandardButtons(self.btn_cancel_box | self.btn_save_box)
+
+        if self.lbl_title.text() == 'Edycja książki':
+            self.layout_book.addRow(self.btn_delete_book)
+        self.layout_book.addRow(lbl_isbn, self.edit_isbn)
+        self.layout_book.addRow(lbl_book_name, self.edit_book_name)
+        self.layout_book.addRow(lbl_author_name, self.edit_author)
+        self.layout_book.addRow(lbl_publisher, self.edit_publisher)
+        self.layout_book.addRow(lbl_publish_date, self.edit_publish_date)
+        self.layout_book.addRow(lbl_category, self.edit_category)
+        self.layout_book.addRow(lbl_language, self.edit_language_book)
+        self.layout_book.addRow(lbl_book_description, self.edit_book_description)
+        self.layout_book.addItem(self.v_spacer)
+        self.layout_book.addRow(btn_save_box)
+        self.dialog_book.setLayout(self.layout_book)
+
+        btn_save_box.rejected.connect(self.on_home_clicked)
+        btn_save_box.accepted.connect(lambda: self.new_book(self._book_id))
 
     def profile_clicked(self, row, column):
         item = self.tbl_result.item(row, 0)

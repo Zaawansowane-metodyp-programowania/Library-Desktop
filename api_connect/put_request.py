@@ -3,7 +3,7 @@ import json
 import requests
 
 
-def put_request(url, data,token, q=None):
+def put_request(url, data, token, q=None):
     headers = {'Content-type': 'application/json',
                'Accept': 'application/json',
                'Authorization': 'Bearer {}'.format(token)}

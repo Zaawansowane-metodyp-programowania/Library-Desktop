@@ -50,7 +50,8 @@ class Login(QDialog):
 
         self.show()
 
-    def register(self):
+    @staticmethod
+    def register():
         dialog = Register()
         dialog.show()
         dialog.exec_()

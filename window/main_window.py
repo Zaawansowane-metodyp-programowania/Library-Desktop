@@ -25,7 +25,6 @@ class MainWindow(QMainWindow, QtStyleTools):
         style.triggered[QAction].connect(self.processtrigger)
         widget = MainWidget(user)
         self.setCentralWidget(widget)
-        self.show()
 
     def processtrigger(self, q):
         self.apply_stylesheet(self, q.text().lower().replace(' ', '_') + '.xml')
