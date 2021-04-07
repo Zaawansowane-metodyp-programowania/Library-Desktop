@@ -22,7 +22,9 @@ class MainWidget(Widget):
         self.page_number = 1
         self.sorted_by = None
         self.sorted_direction = None
-        self._txt_change_password = 'Zmiana hasła'
+        self._txt_change_passwd = 'Zmiana hasła'
+        self._txt_permission = 'Utwórz konto z uprawnieniami'
+        self._txt_bad_data = 'Błędne dane'
 
         # Layouty
         self.layout = QVBoxLayout()
@@ -34,8 +36,8 @@ class MainWidget(Widget):
         self.btn_my_book = QPushButton('Moje książki')
         self.btn_library = QPushButton('Biblioteka')
         self.btn_profile = QPushButton('Profil')
-        self.btn_permission = QPushButton('Utwórz konto z uprawnieniami')
-        self.btn_change_passwd = QPushButton(self._txt_change_password)
+        self.btn_permission = QPushButton(self._txt_permission)
+        self.btn_change_passwd = QPushButton(self._txt_change_passwd)
         self.btn_logout = QPushButton('Wylogowanie')
         self.btn_add_book = QPushButton('Dodaj nową książkę')
 
@@ -84,7 +86,13 @@ class MainWidget(Widget):
         self.text_layout.addWidget(self.lbl_home)
 
     def on_book_clicked(self):
-        print("Books")
+        print("My books")
+        self.clear_layout()
+        self.tbl_result.clear()
+        self.lbl_title.setText('Wypożyczone książki')
+        self.text_layout.addWidget(self.lbl_title)
+        if self.get_book_user_id():
+            self.text_layout.addWidget(self.tbl_result)
 
     def next_page(self):
         self.page_number += 1
@@ -168,7 +176,7 @@ class MainWidget(Widget):
     def on_change_passwd_clicked(self):
         print("Change password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_password)
+        self.lbl_title.setText(self._txt_change_passwd)
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.dialog_password)
         self.edit_passwd1.setFocus()
@@ -176,7 +184,7 @@ class MainWidget(Widget):
     def on_change_passwd_admin_clicked(self):
         print("Change admin password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_password)
+        self.lbl_title.setText(self._txt_change_passwd)
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
@@ -205,7 +213,7 @@ class MainWidget(Widget):
 
         if list(data[0].keys())[0] == 'id':
             self.tbl_result.hideColumn(0)
-        if 'roleId' in list(data[0].keys()) and self.lbl_title.text() != 'Utwórz konto z uprawnieniami':
+        if 'roleId' in list(data[0].keys()) and self.lbl_title.text() != self._txt_permission:
             self.tbl_result.hideColumn(4)
         else:
             self.tbl_result.showColumn(4)
@@ -213,7 +221,7 @@ class MainWidget(Widget):
         for row in range(row_count):
             for column in range(column_count):
                 item = (list(data[row].values())[column])
-                if column == 4 and self.lbl_title.text() == 'Utwórz konto z uprawnieniami':
+                if column == 4 and self.lbl_title.text() == self._txt_permission:
                     item = roleid.get(item)
                 self.tbl_result.setItem(row, column, QTableWidgetItem(str(item)))
 
@@ -274,6 +282,8 @@ class MainWidget(Widget):
 
     def get_book_id(self, book_id):
         self.btn_delete_book.clicked.connect(lambda: self.delete_book(book_id))
+        self.btn_borrow_book.clicked.connect(lambda: self.borrow_book_user())
+        self._book_id = book_id
         book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
         x = threading.Thread(
             target=get_request,
@@ -284,6 +294,84 @@ class MainWidget(Widget):
 
         data = self.que.get()
         return data
+
+    def get_book_user_id(self):
+        book_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + '/' + str(self.user.get('id'))
+        x = threading.Thread(
+            target=get_request,
+            args=(book_user_id_api, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        if data:
+            self.set_data(data)
+            return True
+        else:
+            return False
+
+    def borrow_book_user(self):
+        self.clear_layout()
+        self.lbl_title.setText('Wybierz użytkownika')
+        self.text_layout.addWidget(self.lbl_title)
+        self.get_users()
+        self.text_layout.addWidget(self.tbl_result)
+
+    def reservation_book(self, book_id, reservation=True):
+        url = URL + self.get_books_api + '/reservation/' + str(book_id)
+        jsons = {
+            "reservation": reservation
+        }
+        x = threading.Thread(
+            target=patch_request,
+            args=(url, jsons, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        print(data)
+
+    def borrow_book(self, book_id, user_id):
+        url = URL + self.get_books_api + '/borrow/' + str(book_id)
+        jsons = {
+            "userId": int(user_id)
+        }
+
+        self.reservation_book(book_id, False)
+
+        x = threading.Thread(
+            target=patch_request,
+            args=(url, jsons, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        if data:
+            self.on_library_clicked()
+
+    def back_book(self, book_id):
+        url = URL + self.get_books_api + '/borrow/' + str(book_id)
+        jsons = {
+            "userId": None
+        }
+        x = threading.Thread(
+            target=patch_request,
+            args=(url, jsons, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        print(data)
+        if data:
+            self.on_book_clicked()
+        else:
+            self.clear_layout()
+            self.lbl_title.setText('Nie masz żadnych wypożyczonych książek')
+            self.text_layout.addWidget(self.lbl_title)
 
     def post_user(self):
         user_api = "".join([URL, self.get_users_api])
@@ -345,7 +433,7 @@ class MainWidget(Widget):
             return
 
         if self.edit_passwd2.text() != self.edit_passwd3.text():
-            QMessageBox.warning(self, "Błędne dane", "Podane hasła nie są identyczne!")
+            QMessageBox.warning(self, self._txt_bad_data, "Podane hasła nie są identyczne!")
             self.edit_passwd2.setText('')
             self.edit_passwd3.setText('')
             self.edit_passwd2.setFocus()
@@ -414,10 +502,8 @@ class MainWidget(Widget):
         if response.status_code == 500:
             QMessageBox.warning(self, "Błąd", "Nie można usunąć użytkownika, który wypożyczył książki!")
 
-
     def delete_book(self, book_id):
         token = self.user.get('token')
-        _book_id = book_id
         book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
         button_reply = QMessageBox.question(
             self,
@@ -441,7 +527,6 @@ class MainWidget(Widget):
 
     def new_book(self, book_id=None):
         token = self.user.get('token')
-        _book_id = book_id
         flag_book = False
 
         if self.edit_isbn.text() == '' or \
@@ -453,7 +538,7 @@ class MainWidget(Widget):
             QMessageBox.warning(self, "Uwaga, błąd danych", "Należy wypełnić wymagane pola.")
             return
         if not self.edit_publish_date.text().isdigit():
-            QMessageBox.warning(self, "Błędne dane", 'Pole "Data wydania" należy wypełnić liczbą.')
+            QMessageBox.warning(self, self._txt_bad_data, 'Pole "Data wydania" należy wypełnić liczbą.')
             self.edit_publish_date.setFocus()
             return
 
@@ -487,7 +572,7 @@ class MainWidget(Widget):
 
             response = self.que.get()
             print(response)
-            if response.status_code == 200 or 201:
+            if response.status_code == 200 or response.status_code == 201:
                 QMessageBox.information(self, title, descr)
                 self.on_library_clicked()
 
@@ -508,7 +593,7 @@ class MainWidget(Widget):
             return
 
         if name == '' or surname == '' or email == '':
-            QMessageBox.warning(self, "Błędne dane", "Podane dane nie mogą być puste!")
+            QMessageBox.warning(self, self._txt_bad_data, "Podane dane nie mogą być puste!")
             self.edit_name.setFocus()
             return
 

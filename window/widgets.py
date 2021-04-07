@@ -87,6 +87,7 @@ class Widget(QWidget):
         self.edit_language_book = QLineEdit()
         self.edit_book_description = QPlainTextEdit()
         self.btn_delete_book = QPushButton('Usuń książkę')
+        self.btn_borrow_book = QPushButton('Wypożycz książkę')
         self.book_id_widget()
 
         # Zmiana hasła
@@ -224,10 +225,22 @@ class Widget(QWidget):
             QMessageBox.warning(self, "Błąd!", "Nie można usunąć konta admina!")
             return
 
-        if self.lbl_title.text() == 'Biblioteka':
+        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') > 1:
             self._user_id = None
             self._book_id = item.text()
             self.change_book(item.text())
+
+        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') == 1:
+            self._user_id = None
+            self.reservation_book(item.text())
+            QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
+            self.on_library_clicked()
+
+        if self.lbl_title.text() == 'Wypożyczone książki':
+            self.back_book(item.text())
+
+        if self.lbl_title.text() == 'Wybierz użytkownika':
+            self.borrow_book(self._book_id, item.text())
 
     def book_id_widget(self):
         btn_save_box = QDialogButtonBox()
@@ -239,12 +252,14 @@ class Widget(QWidget):
         lbl_category = QLabel('Kategoria:')
         lbl_language = QLabel('Język książki:')
         lbl_book_description = QLabel('Opis książki:')
+        layout_hbox = QHBoxLayout()
         self.btn_delete_book.setStyleSheet("color: #dc3545; border-color : #dc3545")
 
         btn_save_box.setStandardButtons(self.btn_cancel_box | self.btn_save_box)
 
-        if self.lbl_title.text() == 'Edycja książki':
-            self.layout_book.addRow(self.btn_delete_book)
+        layout_hbox.addWidget(self.btn_delete_book)
+        layout_hbox.addWidget(self.btn_borrow_book)
+        self.layout_book.addRow(layout_hbox)
         self.layout_book.addRow(lbl_isbn, self.edit_isbn)
         self.layout_book.addRow(lbl_book_name, self.edit_book_name)
         self.layout_book.addRow(lbl_author_name, self.edit_author)

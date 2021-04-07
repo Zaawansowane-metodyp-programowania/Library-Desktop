@@ -63,6 +63,9 @@ class Register(QDialog):
         if jsons.get('password') == '':
             QMessageBox.warning(self, "Błąd", "Hasła nie mogą być puste.")
             return
+        if len(self.edit_pass2.text()) < 6:
+            QMessageBox.warning(self, "Błąd", "Hasło jest za krótkie.")
+            return
         if jsons.get('email') == '':
             QMessageBox.warning(self, "Błąd", "Email nie może być pusty.")
             self.edit_new_email.setFocus()
