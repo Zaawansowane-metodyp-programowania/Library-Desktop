@@ -27,5 +27,9 @@ class MainWindow(QMainWindow, QtStyleTools):
         self.setCentralWidget(widget)
 
     def processtrigger(self, q):
+        """
+        Służy zmianie tematu graficznego.
+        :param q: str
+        """
         self.apply_stylesheet(self, q.text().lower().replace(' ', '_') + '.xml')
         writing(q.text().lower().replace(' ', '_') + '.xml')

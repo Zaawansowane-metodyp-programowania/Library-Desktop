@@ -4,7 +4,7 @@ import threading
 
 from PySide2 import QtGui
 from PySide2.QtWidgets import QDialog, QDialogButtonBox, QLabel, QApplication, QLineEdit, QFormLayout, \
-    QMessageBox, QPushButton, QSpacerItem, QSizePolicy
+    QMessageBox, QPushButton
 
 from api_connect.post_request import post_request
 from window import URL
@@ -12,7 +12,9 @@ from window.register import Register
 
 
 class Login(QDialog):
-
+    """
+    Klasa własna do obsługi logowania oraz rejestracji.
+    """
     def __init__(self):
         super(Login, self).__init__()
 
@@ -52,11 +54,17 @@ class Login(QDialog):
 
     @staticmethod
     def register():
+        """
+        Wywołuje klasę Register służącą do tworzenia nowego użytkownika.
+        """
         dialog = Register()
         dialog.show()
         dialog.exec_()
 
     def login_in(self):
+        """
+        Służy do zalogowania się do API za pomocą podanych danych.
+        """
         if not self.edit_login.text() or not self.edit_passwd.text():
             QMessageBox.warning(self, "Błędne dane logowania", "Proszę wpisać login oraz hasło")
             self.edit_login.setFocus()

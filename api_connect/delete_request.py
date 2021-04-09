@@ -2,6 +2,14 @@ import requests
 
 
 def delete_request(url, token, q=None):
+    """
+    Funkcja obsługująca API DELETE. Wymaga podania url, tokena użytkownika oraz opcjonalnego parametru q do
+    obsługi wielowątkowości.
+    :param url: str
+    :param token: str
+    :param q: object
+    :return: json
+    """
     headers = {'Content-type': 'application/json',
                'Accept': 'application/json',
                'Authorization': 'Bearer {}'.format(token)}

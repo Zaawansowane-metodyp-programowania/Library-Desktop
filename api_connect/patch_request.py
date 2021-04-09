@@ -4,6 +4,15 @@ import requests
 
 
 def patch_request(url: str, data: dict, token: str, q=None):
+    """
+    Funkcja obsługująca API PATCH. Wymaga podania url, tokena użytkownika, danych w formacie doc oraz opcjonalnego
+    parametru q do obsługi wielowątkowości.
+    :param url: str
+    :param data: doc
+    :param token: str
+    :param q: object
+    :return: json
+    """
     headers = {'Content-type': 'application/json',
                'Accept': 'application/json',
                'Authorization': 'Bearer {}'.format(token)}

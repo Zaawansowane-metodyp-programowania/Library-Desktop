@@ -16,13 +16,16 @@ from window.widgets import Widget
 
 
 class MainWidget(Widget):
+    """
+    Klasa główna wyświetlająca wszystkie niezbędne elementy w głównym oknie programu.
+    """
     def __init__(self, user):
         super(MainWidget, self).__init__(user)
         self.que = queue.Queue()
         self.page_number = 1
         self.sorted_by = None
         self.sorted_direction = None
-        self._txt_change_passwd = 'Zmiana hasła'
+        self._txt_change_pwd = 'Zmiana hasła'
         self._txt_permission = 'Utwórz konto z uprawnieniami'
         self._txt_bad_data = 'Błędne dane'
 
@@ -33,18 +36,21 @@ class MainWidget(Widget):
 
         # Widgety
         self.btn_home = QPushButton('Strona główna')
-        self.btn_my_book = QPushButton('Moje książki')
+        self.btn_my_book = QPushButton('Wypożyczone książki')
         self.btn_library = QPushButton('Biblioteka')
         self.btn_profile = QPushButton('Profil')
         self.btn_permission = QPushButton(self._txt_permission)
-        self.btn_change_passwd = QPushButton(self._txt_change_passwd)
+        self.btn_change_passwd = QPushButton(self._txt_change_pwd)
         self.btn_logout = QPushButton('Wylogowanie')
         self.btn_add_book = QPushButton('Dodaj nową książkę')
 
         # Ustawienia widgetów
         self.menu_layout.setContentsMargins(-1, -1, -1, 25)
         self.btn_home.clicked.connect(self.on_home_clicked)
-        self.btn_my_book.clicked.connect(self.on_book_clicked)
+        if self.user.get('roleId') > 1:
+            self.btn_my_book.clicked.connect(self.on_book_clicked_permission)
+        else:
+            self.btn_my_book.clicked.connect(self.on_book_clicked)
         self.btn_library.clicked.connect(self.on_library_clicked)
         self.btn_permission.clicked.connect(self.on_permission_clicked)
         if self.user.get('roleId') != 3:
@@ -77,41 +83,76 @@ class MainWidget(Widget):
         self.setLayout(self.layout)
 
     def clear_layout(self):
+        """
+        Czyści layout głównego widżetu z pozostałych, niepotrzebnych  widgetów.
+        """
         for i in reversed(range(self.text_layout.count())):
             self.text_layout.itemAt(i).widget().setParent(None)
 
     def on_home_clicked(self):
+        """
+        Wyświetla widgety strony głównej.
+        """
         print("Home")
         self.clear_layout()
         self.text_layout.addWidget(self.lbl_home)
 
-    def on_book_clicked(self):
+    def on_book_clicked(self, user_id=None):
+        """
+        Wyświetla wypożyczone książki danego użytkownika.
+        :param user_id: int
+        """
         print("My books")
         self.clear_layout()
         self.tbl_result.clear()
         self.lbl_title.setText('Wypożyczone książki')
         self.text_layout.addWidget(self.lbl_title)
-        if self.get_book_user_id():
+        if self.get_book_user_id(user_id):
             self.text_layout.addWidget(self.tbl_result)
 
+    def on_book_clicked_permission(self):
+        """
+        Dla konta z uprawnieniami, wyświetla tabelę użytkowników przed tabelą wypożyczonych książek.
+        """
+        print('Books permision')
+        self.clear_layout()
+        self.tbl_result.clear()
+        self.lbl_title.setText('Użytkownicy')
+        self.text_layout.addWidget(self.lbl_title)
+        self.get_users()
+        self.text_layout.addWidget(self.tbl_result)
+
     def next_page(self):
+        """
+        Wyświetla następną stronę książek w bibliotece.
+        """
         self.page_number += 1
         if self.lbl_title.text() == 'Biblioteka':
             self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
                            sort_direction=self.sorted_direction)
 
     def back_page(self):
+        """
+        Wyświetla poprzednią stronę książek w bibliotece.
+        """
         self.page_number -= 1
         if self.lbl_title.text() == 'Biblioteka':
             self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
                            sort_direction=self.sorted_direction)
 
     def search(self):
+        """
+        Wyszukuje odpowiednią frazę w kolumnach Tytuł, Wydawca, Autor, Opis.
+        """
         self.page_number = 1
         if self.lbl_title.text() == 'Biblioteka':
             self.get_books(1, search=self.edit_search.text(), sort_direction=self.sorted_direction)
 
     def sort_direction(self, text):
+        """
+        Sortuje wyniki wyświetlania zawartości biblioteki rosnąco bądź malejąco.
+        :param text: str
+        """
         sort_dict = {
             'Rosnąco': 0,
             'Malejąco': 1
@@ -122,6 +163,11 @@ class MainWidget(Widget):
             self.get_books(1, sort_by=self.sorted_by, sort_direction=self.sorted_direction)
 
     def sort_by(self, text):
+        """
+        Sortuje wyniki wyświetlania zawartości biblioteki na podstawie Tytułu, Opisu, Kategorii, Wydawcy lub Daty
+        wydania.
+        :param text: str
+        """
         sort_dict = {
             'Sortuj według': None,
             'Tytuł': 'BookName',
@@ -136,6 +182,9 @@ class MainWidget(Widget):
             self.get_books(1, sort_by=self.sorted_by, sort_direction=self.sorted_direction)
 
     def on_library_clicked(self):
+        """
+        Wyświetla książki zawarte w bibliotece.
+        """
         print("library")
         self.clear_layout()
         self.lbl_title.setText('Biblioteka')
@@ -148,6 +197,9 @@ class MainWidget(Widget):
         self.get_books(self.page_number)
 
     def on_profile_clicked(self):
+        """
+        Wyświetla dane profilu, dostępne do edycji.
+        """
         print("profile")
         self.clear_layout()
         self.lbl_title.setText('Ustawienia profilu')
@@ -159,14 +211,19 @@ class MainWidget(Widget):
         self.edit_email.setText(data.get('email'))
 
     def on_profile_admin_clicked(self):
+        """
+        Wyświetla dane wszystkich użytkowników.
+        """
         self.clear_layout()
         self.lbl_title.setText('Usuwanie profilu')
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
-        # self.tbl_result.cellClicked.connect(self.profile_clicked)
 
     def on_permission_clicked(self):
+        """
+        Wyświetla możliwość utworzenia konta z uprawnieniami.
+        """
         print("permission")
         self.clear_layout()
         self.lbl_title.setText('Utwórz nowe konto z uprawnieniami')
@@ -174,22 +231,31 @@ class MainWidget(Widget):
         self.text_layout.addWidget(self.dialog_permission)
 
     def on_change_passwd_clicked(self):
+        """
+        Wyświetla możliwość zmiany hasła.
+        """
         print("Change password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_passwd)
+        self.lbl_title.setText(self._txt_change_pwd)
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.dialog_password)
         self.edit_passwd1.setFocus()
 
     def on_change_passwd_admin_clicked(self):
+        """
+        Wyświetla użytkowników, dla których hasło zostanie zmienione.
+        """
         print("Change admin password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_passwd)
+        self.lbl_title.setText(self._txt_change_pwd)
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
 
     def on_logout_clicked(self):
+        """
+        Wylogowuje użytkownika z programu.
+        """
         print("Logout")
         self.clear_layout()
         self.close()
@@ -197,10 +263,14 @@ class MainWidget(Widget):
         run_window()
 
     def set_data(self, data):
+        """
+        Wyświetla dane w tabeli i je formatuje.
+        :param data: dict
+        """
         self.tbl_result.clear()
         row_count = (len(data))
         column_count = (len(data[0]))
-        roleid = {
+        role_id = {
             1: 'Użytkownik',
             2: 'Pracownik',
             3: 'Administrator'
@@ -222,13 +292,20 @@ class MainWidget(Widget):
             for column in range(column_count):
                 item = (list(data[row].values())[column])
                 if column == 4 and self.lbl_title.text() == self._txt_permission:
-                    item = roleid.get(item)
+                    item = role_id.get(item)
                 self.tbl_result.setItem(row, column, QTableWidgetItem(str(item)))
 
         self.tbl_result.resizeColumnsToContents()
         self.tbl_result.resizeRowsToContents()
 
     def get_books(self, page_number, sort_by=None, sort_direction=None, search=None):
+        """
+        Pobiera dane o zawartości książek w bibliotece z API w wątku.
+        :param page_number: int
+        :param sort_by: str
+        :param sort_direction: int
+        :param search: str
+        """
         self.page_number = page_number
         url = URL + self.get_books_api + f'?PageNumber={page_number}&PageSize=15'
         if search:
@@ -258,6 +335,9 @@ class MainWidget(Widget):
         self.set_data(data.get('items'))
 
     def get_users(self):
+        """
+        Pobiera dane o użytkownikach z API w wątku.
+        """
         x = threading.Thread(
             target=get_request,
             args=("".join([URL, self.get_users_api]), self.user.get('token'), self.que))
@@ -269,6 +349,10 @@ class MainWidget(Widget):
         self.set_data(data)
 
     def get_user_id(self):
+        """
+        Pobiera dane o konkretnym użytkowniku w wątku i je zwraca.
+        :return: json
+        """
         user_id_api = "".join([URL, self.get_users_api, '/', str(self.user.get('id'))])
         x = threading.Thread(
             target=get_request,
@@ -281,6 +365,11 @@ class MainWidget(Widget):
         return data
 
     def get_book_id(self, book_id):
+        """
+        Pobiera dane o konkretnej książce w wątku i je zwraca.
+        :param book_id: int
+        :return: json
+        """
         self.btn_delete_book.clicked.connect(lambda: self.delete_book(book_id))
         self.btn_borrow_book.clicked.connect(lambda: self.borrow_book_user())
         self._book_id = book_id
@@ -295,8 +384,15 @@ class MainWidget(Widget):
         data = self.que.get()
         return data
 
-    def get_book_user_id(self):
-        book_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + '/' + str(self.user.get('id'))
+    def get_book_user_id(self, user_id=None):
+        """
+        Pobiera dane na temat wypożyczonych książek przez konkretnego użytkownika.
+        :param user_id: int
+        :return: boolean
+        """
+        if not user_id:
+            user_id = self.user.get('id')
+        book_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + '/' + str(user_id)
         x = threading.Thread(
             target=get_request,
             args=(book_user_id_api, self.user.get('token'), self.que))
@@ -312,6 +408,9 @@ class MainWidget(Widget):
             return False
 
     def borrow_book_user(self):
+        """
+        Wyświetla listę użytkowników, dla których dana książka zostanie wypożyczona.
+        """
         self.clear_layout()
         self.lbl_title.setText('Wybierz użytkownika')
         self.text_layout.addWidget(self.lbl_title)
@@ -319,6 +418,11 @@ class MainWidget(Widget):
         self.text_layout.addWidget(self.tbl_result)
 
     def reservation_book(self, book_id, reservation=True):
+        """
+        Dokonuje rezerwacji danej książki w wątku.
+        :param book_id: int
+        :param reservation: boolean
+        """
         url = URL + self.get_books_api + '/reservation/' + str(book_id)
         jsons = {
             "reservation": reservation
@@ -334,6 +438,11 @@ class MainWidget(Widget):
         print(data)
 
     def borrow_book(self, book_id, user_id):
+        """
+        Dokonuje wypożyczenia książki użytkownikowi, w wątku.
+        :param book_id: int
+        :param user_id: int
+        """
         url = URL + self.get_books_api + '/borrow/' + str(book_id)
         jsons = {
             "userId": int(user_id)
@@ -350,9 +459,14 @@ class MainWidget(Widget):
 
         data = self.que.get()
         if data:
+            QMessageBox.information(self, "Wypożyczono", "Podana pozycja została wypożyczona!")
             self.on_library_clicked()
 
     def back_book(self, book_id):
+        """
+        Dokonuje zwrotu danej książki w wątku.
+        :param book_id: int
+        """
         url = URL + self.get_books_api + '/borrow/' + str(book_id)
         jsons = {
             "userId": None
@@ -367,13 +481,17 @@ class MainWidget(Widget):
         data = self.que.get()
         print(data)
         if data:
-            self.on_book_clicked()
+            QMessageBox.information(self, "Zwrócono", "Książka została zwrócona!")
+            self.on_home_clicked()
         else:
             self.clear_layout()
             self.lbl_title.setText('Nie masz żadnych wypożyczonych książek')
             self.text_layout.addWidget(self.lbl_title)
 
     def post_user(self):
+        """
+        Dokonuje utworzenia nowego użytkownika.
+        """
         user_api = "".join([URL, self.get_users_api])
         jsons = {
             "name": self.edit_new_name.text(),
@@ -412,6 +530,9 @@ class MainWidget(Widget):
         print(data)
 
     def add_book(self):
+        """
+        Wyświetla widgety odpowiedzialne za dodanie nowej książki do biblioteki.
+        """
         print("Add book")
         self.clear_layout()
         self.lbl_title.setText('Dodaj nową książkę')
@@ -419,6 +540,10 @@ class MainWidget(Widget):
         self.text_layout.addWidget(self.dialog_book)
 
     def change_passwd(self, user_id=None):
+        """
+        Umożliwia zmianę hasła danego użytkownika w wątku.
+        :param user_id: int
+        """
         if user_id is None:
             user_id = self.user.get('id')
         print(user_id)
@@ -472,6 +597,10 @@ class MainWidget(Widget):
             self.on_home_clicked()
 
     def delete_profile(self, user_id=None):
+        """
+        Umożliwia usunięcie danego użytkownika z bazy, w wątku.
+        :param user_id: int
+        """
         token = self.user.get('token')
         _user_id = user_id
         if _user_id is None:
@@ -503,6 +632,10 @@ class MainWidget(Widget):
             QMessageBox.warning(self, "Błąd", "Nie można usunąć użytkownika, który wypożyczył książki!")
 
     def delete_book(self, book_id):
+        """
+        Umożliwia usunięcie danej książki z bazy, w wątku.
+        :param book_id: int
+        """
         token = self.user.get('token')
         book_id_api = "".join([URL, self.get_books_api, '/', str(book_id)])
         button_reply = QMessageBox.question(
@@ -526,6 +659,10 @@ class MainWidget(Widget):
             self.on_library_clicked()
 
     def new_book(self, book_id=None):
+        """
+        Umożliwia utworzenie nowej książki w bazie, bądź zmianę już istniejącej, w wątku.
+        :param book_id: int
+        """
         token = self.user.get('token')
         flag_book = False
 
@@ -577,6 +714,9 @@ class MainWidget(Widget):
                 self.on_library_clicked()
 
     def change_profile(self):
+        """
+        Umożliwia zmianę danych użytkownika, w wątku.
+        """
         token = self.user.get('token')
         url_profile = "".join([URL, self.get_users_api, '/', str(self.user.get('id'))])
 
@@ -614,6 +754,10 @@ class MainWidget(Widget):
             QMessageBox.information(self, "Zmiana danych", "Dane zostały pomyślnie zapisane!")
 
     def change_book(self, book_id):
+        """
+        Uzupełnia dane widgetów o zawartość jsona danej książki.
+        :param book_id: int
+        """
         print("Change book id")
         self.clear_layout()
         self.lbl_title.setText('Edycja książki')

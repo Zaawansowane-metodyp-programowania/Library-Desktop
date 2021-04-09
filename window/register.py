@@ -1,16 +1,18 @@
 import queue
 import threading
 
+from PySide2 import QtGui
 from PySide2.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QLabel, QLineEdit, QSpacerItem, QSizePolicy, \
     QMessageBox
-from qtpy import QtGui
 
 from api_connect.post_request import post_request
 from window import URL
 
 
 class Register(QDialog):
-
+    """
+    Klasa służąca do utworzenia nowego użytkownika z najniższymi uprawnieniami.
+    """
     def __init__(self):
         super(Register, self).__init__()
         self.url_register = 'account/register'
@@ -48,6 +50,10 @@ class Register(QDialog):
         btn_box.accepted.connect(self.register_user)
 
     def register_user(self):
+        """
+        Rejestruje nowego użytkownika z zerowymi uprawnieniami (jedynie rezerwowanie książek i przeglądanie
+        własnych, wypożyczonych książek).
+        """
         jsons = {
             "name": self.edit_name.text(),
             "surname": self.edit_surname.text(),
@@ -85,4 +91,3 @@ class Register(QDialog):
         if response.status_code == 200:
             QMessageBox.information(self, "Rejestracja", 'Pomyślnie zarejestrowano nowego użytkownika.')
         self.accept()
-

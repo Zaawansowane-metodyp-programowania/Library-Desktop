@@ -8,6 +8,10 @@ from window.home_text_browser import HomeTextBrowser
 
 
 class Widget(QWidget):
+    """
+    Klasa z podstawowymi elementami, na podstawie której została utworzona klasa docelowa. Nie moe istnieć bez klasy
+    docelowej MainWidget ze względu na zawarte odnieniesia do funkcji, które istnieją w klasie MainWidget.
+    """
     def __init__(self, user):
         super(Widget, self).__init__()
         self.library = QWidget()
@@ -105,11 +109,10 @@ class Widget(QWidget):
         self.combo_role_id = QComboBox(self)
         self.role_profile_widget()
 
-    def clear_form(self):
-        for i in reversed(range(self.layout_password.count())):
-            self.layout_password.itemAt(i).widget().setParent(None)
-
     def library_widget(self):
+        """
+        Tworzy widgety potrzebne do obsługi zawartości biblioteki.
+        """
         self.layout_search.addWidget(self.edit_search)
         self.layout_search.addWidget(self.combo_sort_by)
         self.layout_search.addWidget(self.combo_sort_direction)
@@ -133,6 +136,9 @@ class Widget(QWidget):
         self.combo_sort_direction.activated[str].connect(self.sort_direction)
 
     def change_password_widget(self):
+        """
+        Tworzy widgety niezbędne do obsługi zmiany hasła.
+        """
         btn_box = QDialogButtonBox()
         lbl_passwd1 = QLabel('Wpisz stare hasło:')
         lbl_passwd2 = QLabel('Wpisz nowe hasło:')
@@ -151,6 +157,9 @@ class Widget(QWidget):
         btn_box.accepted.connect(lambda: self.change_passwd(self._user_id))
 
     def profile_widget(self):
+        """
+        Tworzy widgety niezbędne do obsługi edycji i usunięcia profilu.
+        """
         self.btn_delete_profile.setStyleSheet("color: #dc3545; border-color : #dc3545")
         lbl_name = QLabel('Imię:')
         lbl_subname = QLabel('Nazwisko:')
@@ -173,6 +182,9 @@ class Widget(QWidget):
         self.btn_delete_profile.clicked.connect(self.delete_profile)
 
     def role_profile_widget(self):
+        """
+        Tworzy widgety niezbędne do obsługi utworzenia użytkownika z uprawnieniami.
+        """
         self.combo_role_id.addItem('Użytkownik')
         self.combo_role_id.addItem('Pracownik')
         self.combo_role_id.addItem('Administrator')
@@ -204,6 +216,10 @@ class Widget(QWidget):
         btn_box.accepted.connect(self.post_user)
 
     def on_changed(self, text):
+        """
+        Zamienia nazwę przyjazną użytkownikowi w cyfrę odpowiadającą danej roli.
+        :param text: str
+        """
         role_id = {
             'Użytkownik': 1,
             'Pracownik': 2,
@@ -212,6 +228,12 @@ class Widget(QWidget):
         self._role_id = role_id.get(text)
 
     def cell_was_clicked(self, row, column):
+        """
+        Służy do obsługi tabel w programie. Każde kliknięcie jest walidowane pod kątem roli danego użytkownika,
+        a także tytułu jaki widnieje nad tabelą. Dzięki temu w całym programie wystarczy jedna tabela.
+        :param row: int
+        :param column: int
+        """
         item = self.tbl_result.item(row, 0)
         print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
         self._user_id = item.text()
@@ -236,13 +258,19 @@ class Widget(QWidget):
             QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
             self.on_library_clicked()
 
-        if self.lbl_title.text() == 'Wypożyczone książki':
+        if self.lbl_title.text() == 'Użytkownicy' and self.user.get('roleId') > 1:
+            self.on_book_clicked(item.text())
+
+        if self.lbl_title.text() == 'Wypożyczone książki' and self.user.get('roleId') > 1:
             self.back_book(item.text())
 
         if self.lbl_title.text() == 'Wybierz użytkownika':
             self.borrow_book(self._book_id, item.text())
 
     def book_id_widget(self):
+        """
+        Tworzy widgety niezbędne do obsługi edycji, usunięcia i wypożyczenia książki.
+        """
         btn_save_box = QDialogButtonBox()
         lbl_isbn = QLabel('ISBN:')
         lbl_book_name = QLabel('Tytuł książki:')
@@ -275,7 +303,7 @@ class Widget(QWidget):
         btn_save_box.rejected.connect(self.on_home_clicked)
         btn_save_box.accepted.connect(lambda: self.new_book(self._book_id))
 
-    def profile_clicked(self, row, column):
-        item = self.tbl_result.item(row, 0)
-        print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
-        self._user_id = item.text()
+    # def row_clicked(self, row, column):
+    #     item = self.tbl_result.item(row, 0)
+    #     print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
+    #     self._user_id = item.text()

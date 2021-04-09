@@ -4,6 +4,15 @@ import requests
 
 
 def put_request(url, data, token, q=None):
+    """
+    Funkcja obsługująca API PUT. Wymaga podania url, tokena użytkownika, danych w formacie doc oraz opcjonalnego
+    parametru q do obsługi wielowątkowości.
+    :param url: str
+    :param data: doc
+    :param token: str
+    :param q: object
+    :return: json
+    """
     headers = {'Content-type': 'application/json',
                'Accept': 'application/json',
                'Authorization': 'Bearer {}'.format(token)}

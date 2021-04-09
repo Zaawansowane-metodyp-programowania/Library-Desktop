@@ -3,7 +3,9 @@ from PySide2.QtWidgets import QTextBrowser, QFrame
 
 
 class HomeTextBrowser(QTextBrowser):
-
+    """
+    Klasa obsługująca stronę główną, w której zawarte są podstawowe informacje na temat funkcjonalności programu.
+    """
     def __init__(self):
         super(HomeTextBrowser, self).__init__()
 
