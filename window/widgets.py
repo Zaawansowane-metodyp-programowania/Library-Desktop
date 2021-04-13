@@ -12,6 +12,7 @@ class Widget(QWidget):
     Klasa z podstawowymi elementami, na podstawie której została utworzona klasa docelowa. Nie moe istnieć bez klasy
     docelowej MainWidget ze względu na zawarte odnieniesia do funkcji, które istnieją w klasie MainWidget.
     """
+
     def __init__(self, user):
         super(Widget, self).__init__()
         self.library = QWidget()
@@ -227,46 +228,6 @@ class Widget(QWidget):
         }
         self._role_id = role_id.get(text)
 
-    def cell_was_clicked(self, row, column):
-        """
-        Służy do obsługi tabel w programie. Każde kliknięcie jest walidowane pod kątem roli danego użytkownika,
-        a także tytułu jaki widnieje nad tabelą. Dzięki temu w całym programie wystarczy jedna tabela.
-        :param row: int
-        :param column: int
-        """
-        item = self.tbl_result.item(row, 0)
-        print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
-        self._user_id = item.text()
-
-        if self.user.get('roleId') == 3 and self.lbl_title.text() == 'Zmiana hasła':
-            self.on_change_passwd_clicked()
-
-        if int(self._user_id) != self.user.get('id') and self.lbl_title.text() == 'Usuwanie profilu':
-            self.delete_profile(self._user_id)
-        if int(self._user_id) == self.user.get('id') and self.lbl_title.text() == 'Usuwanie profilu':
-            QMessageBox.warning(self, "Błąd!", "Nie można usunąć konta admina!")
-            return
-
-        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') > 1:
-            self._user_id = None
-            self._book_id = item.text()
-            self.change_book(item.text())
-
-        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') == 1:
-            self._user_id = None
-            self.reservation_book(item.text())
-            QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
-            self.on_library_clicked()
-
-        if self.lbl_title.text() == 'Użytkownicy' and self.user.get('roleId') > 1:
-            self.on_book_clicked(item.text())
-
-        if self.lbl_title.text() == 'Wypożyczone książki' and self.user.get('roleId') > 1:
-            self.back_book(item.text())
-
-        if self.lbl_title.text() == 'Wybierz użytkownika':
-            self.borrow_book(self._book_id, item.text())
-
     def book_id_widget(self):
         """
         Tworzy widgety niezbędne do obsługi edycji, usunięcia i wypożyczenia książki.
@@ -303,7 +264,42 @@ class Widget(QWidget):
         btn_save_box.rejected.connect(self.on_home_clicked)
         btn_save_box.accepted.connect(lambda: self.new_book(self._book_id))
 
-    # def row_clicked(self, row, column):
-    #     item = self.tbl_result.item(row, 0)
-    #     print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
-    #     self._user_id = item.text()
+    def cell_was_clicked(self, row, column):
+        """
+        Służy do obsługi tabel w programie. Każde kliknięcie jest walidowane pod kątem roli danego użytkownika,
+        a także tytułu jaki widnieje nad tabelą. Dzięki temu w całym programie wystarczy jedna tabela.
+        :param row: int
+        :param column: int
+        """
+        item = self.tbl_result.item(row, 0)
+        print("Wiersz %d i kolumna %d została kliknięta: " % (row, column), item.text())
+        self._user_id = item.text()
+
+        if self.user.get('roleId') == 3 and self.lbl_title.text() == 'Zmiana hasła':
+            self.on_change_passwd_clicked()
+
+        if int(self._user_id) != self.user.get('id') and self.lbl_title.text() == 'Usuwanie profilu':
+            self.delete_profile(self._user_id)
+        if int(self._user_id) == self.user.get('id') and self.lbl_title.text() == 'Usuwanie profilu':
+            QMessageBox.warning(self, "Błąd!", "Nie można usunąć konta admina!")
+            return
+
+        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') > 1:
+            self._user_id = None
+            self._book_id = item.text()
+            self.change_book(item.text())
+
+        if self.lbl_title.text() == 'Wypożyczone książki' and self.user.get('roleId') > 1:
+            self.back_book(item.text())
+
+        if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') == 1:
+            self._user_id = None
+            self.reservation_book(item.text())
+            QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
+            self.on_library_clicked()
+
+        if self.lbl_title.text() == 'Użytkownicy' and self.user.get('roleId') > 1:
+            self.on_book_clicked(item.text())
+
+        if self.lbl_title.text() == 'Wybierz użytkownika':
+            self.borrow_book(self._book_id, item.text())

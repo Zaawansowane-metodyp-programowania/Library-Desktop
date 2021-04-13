@@ -1,12 +1,15 @@
+import json
 import sys
 
+from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, QTranslator, QLocale, QLibraryInfo
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QApplication
 from qt_material import apply_stylesheet
 
 from configparse import read_style
-from window import run_window
+from window.login import Login
+from window.main_window import MainWindow
 
 
 class MainApplication(QApplication):
@@ -43,5 +46,13 @@ if __name__ == '__main__':
 
     app.setFont(QFont('', 12))
 
-    run_window(app)
-    app.exec_()
+    window = Login()
+    dec = window.exec_()
+    if dec == QtWidgets.QDialog.Accepted:
+        result = json.loads(window.response.text)
+        print(json.dumps(result, indent=4, sort_keys=True))
+        window = MainWindow(result)
+        window.show()
+    elif dec == QtWidgets.QDialog.Rejected:
+        sys.exit(0)
+    sys.exit(app.exec_())

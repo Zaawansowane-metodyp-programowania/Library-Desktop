@@ -2,7 +2,7 @@ import json
 import queue
 import threading
 
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QMessageBox
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QMessageBox, QDialog
 from email_validator import validate_email, EmailNotValidError
 
 from api_connect.delete_request import delete_request
@@ -11,7 +11,7 @@ from api_connect.patch_request import patch_request
 from api_connect.post_request import post_request
 from api_connect.put_request import put_request
 from window import URL
-from window import run_window
+from window.login import Login
 from window.widgets import Widget
 
 
@@ -19,13 +19,14 @@ class MainWidget(Widget):
     """
     Klasa główna wyświetlająca wszystkie niezbędne elementy w głównym oknie programu.
     """
+
     def __init__(self, user):
         super(MainWidget, self).__init__(user)
         self.que = queue.Queue()
         self.page_number = 1
         self.sorted_by = None
         self.sorted_direction = None
-        self._txt_change_pwd = 'Zmiana hasła'
+        self._txt_change_perm = 'Zmiana hasła'
         self._txt_permission = 'Utwórz konto z uprawnieniami'
         self._txt_bad_data = 'Błędne dane'
 
@@ -40,7 +41,7 @@ class MainWidget(Widget):
         self.btn_library = QPushButton('Biblioteka')
         self.btn_profile = QPushButton('Profil')
         self.btn_permission = QPushButton(self._txt_permission)
-        self.btn_change_passwd = QPushButton(self._txt_change_pwd)
+        self.btn_change_passwd = QPushButton(self._txt_change_perm)
         self.btn_logout = QPushButton('Wylogowanie')
         self.btn_add_book = QPushButton('Dodaj nową książkę')
 
@@ -103,7 +104,8 @@ class MainWidget(Widget):
         :param user_id: int
         """
         print("My books")
-        self.clear_layout()
+        if user_id is None:
+            self.clear_layout()
         self.tbl_result.clear()
         self.lbl_title.setText('Wypożyczone książki')
         self.text_layout.addWidget(self.lbl_title)
@@ -115,9 +117,9 @@ class MainWidget(Widget):
         Dla konta z uprawnieniami, wyświetla tabelę użytkowników przed tabelą wypożyczonych książek.
         """
         print('Books permision')
-        self.clear_layout()
-        self.tbl_result.clear()
         self.lbl_title.setText('Użytkownicy')
+        self.tbl_result.clear()
+        self.clear_layout()
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
@@ -236,7 +238,7 @@ class MainWidget(Widget):
         """
         print("Change password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_pwd)
+        self.lbl_title.setText(self._txt_change_perm)
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.dialog_password)
         self.edit_passwd1.setFocus()
@@ -247,7 +249,7 @@ class MainWidget(Widget):
         """
         print("Change admin password")
         self.clear_layout()
-        self.lbl_title.setText(self._txt_change_pwd)
+        self.lbl_title.setText(self._txt_change_perm)
         self.text_layout.addWidget(self.lbl_title)
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
@@ -258,9 +260,22 @@ class MainWidget(Widget):
         """
         print("Logout")
         self.clear_layout()
+        self.logout()
+
+    def logout(self):
+        """
+        Ukrywa główne okno, wyświetla monit o logowanie, po czym podmienia zawartość zmiennej user.
+        """
         self.close()
-        self.parent().destroy()
-        run_window()
+        self.parent().hide()
+        window = Login()
+        dec = window.exec_()
+        if dec == QDialog.Accepted:
+            result = json.loads(window.response.text)
+            self.user = result
+            self.parent().setCentralWidget(MainWidget(result))
+            self.parent().show()
+            self.on_home_clicked()
 
     def set_data(self, data):
         """
@@ -458,8 +473,12 @@ class MainWidget(Widget):
         x.join()
 
         data = self.que.get()
+        print(data.text)
         if data:
             QMessageBox.information(self, "Wypożyczono", "Podana pozycja została wypożyczona!")
+            self.on_library_clicked()
+        elif data.status_code == 400:
+            QMessageBox.warning(self, "Błąd", data.text)
             self.on_library_clicked()
 
     def back_book(self, book_id):
@@ -467,10 +486,8 @@ class MainWidget(Widget):
         Dokonuje zwrotu danej książki w wątku.
         :param book_id: int
         """
-        url = URL + self.get_books_api + '/borrow/' + str(book_id)
-        jsons = {
-            "userId": None
-        }
+        url = URL + self.get_books_api + '/return/' + str(book_id)
+        jsons = {}
         x = threading.Thread(
             target=patch_request,
             args=(url, jsons, self.user.get('token'), self.que))
@@ -480,6 +497,7 @@ class MainWidget(Widget):
 
         data = self.que.get()
         print(data)
+        print('Zwrócono')
         if data:
             QMessageBox.information(self, "Zwrócono", "Książka została zwrócona!")
             self.on_home_clicked()
