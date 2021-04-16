@@ -33,8 +33,7 @@ if __name__ == '__main__':
 
     # Tłumaczenie
     qt_translator = QTranslator()
-    qt_translator.load("qt_" + QLocale.system().name(),
-                       QLibraryInfo.location(QLibraryInfo.TranslationsPath))
+    qt_translator.load('./resources/qt_pl.qm')
     app.installTranslator(qt_translator)
 
     try:

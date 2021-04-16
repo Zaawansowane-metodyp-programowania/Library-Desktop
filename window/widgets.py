@@ -68,7 +68,7 @@ class Widget(QWidget):
         self.tbl_result.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tbl_result.setWordWrap(True)
         # self.tbl_result.verticalHeader().setVisible(False)
-        self.tbl_result.cellClicked.connect(self.cell_was_clicked)
+        self.tbl_result.cellDoubleClicked.connect(self.cell_was_clicked)
 
         font = QFont()
         font.setPointSize(14)

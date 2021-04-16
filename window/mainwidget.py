@@ -191,6 +191,8 @@ class MainWidget(Widget):
         self.clear_layout()
         self.lbl_title.setText('Biblioteka')
         self.edit_search.setPlaceholderText('Wyszukaj i wciśnij ENTER')
+        self.btn_delete_book.show()
+        self.btn_borrow_book.show()
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.library)
         self.text_layout.addWidget(self.tbl_result)
@@ -555,6 +557,8 @@ class MainWidget(Widget):
         self.clear_layout()
         self.lbl_title.setText('Dodaj nową książkę')
         self.text_layout.addWidget(self.lbl_title)
+        self.btn_delete_book.hide()
+        self.btn_borrow_book.hide()
         self.text_layout.addWidget(self.dialog_book)
 
     def change_passwd(self, user_id=None):
