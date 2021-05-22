@@ -2,7 +2,8 @@ from PySide2.QtCore import Qt, QRegExp
 from PySide2.QtGui import QFont, QRegExpValidator
 from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QTableWidget, QDialog, QDialogButtonBox, QSpacerItem, \
     QSizePolicy, QFormLayout, QAbstractItemView, QPushButton, QMessageBox, QComboBox, QHBoxLayout, \
-    QVBoxLayout, QPlainTextEdit
+    QVBoxLayout, QPlainTextEdit, QAction, QHeaderView
+from qt_material import list_themes
 
 from window.home_text_browser import HomeTextBrowser
 
@@ -27,6 +28,7 @@ class Widget(QWidget):
         self.dialog_password = QDialog()
         self.dialog_profile = QDialog()
         self.dialog_permission = QDialog()
+        self.dialog_set_permission = QDialog()
         self.dialog_book = QDialog()
         self.layout_password = QFormLayout()
         self.layout_profile = QFormLayout()
@@ -67,7 +69,10 @@ class Widget(QWidget):
         self.tbl_result.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tbl_result.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.tbl_result.setWordWrap(True)
-        # self.tbl_result.verticalHeader().setVisible(False)
+        self.tbl_result.horizontalHeader().setStretchLastSection(True)
+        self.tbl_result.resizeColumnsToContents()
+        self.tbl_result.resizeRowsToContents()
+        self.tbl_result.verticalHeader().setDefaultAlignment(Qt.AlignCenter | Qt.TextWordWrap)
         self.tbl_result.cellDoubleClicked.connect(self.cell_was_clicked)
 
         font = QFont()
@@ -216,6 +221,27 @@ class Widget(QWidget):
         btn_box.rejected.connect(self.on_home_clicked)
         btn_box.accepted.connect(self.post_user)
 
+    def set_permission(self, user_id):
+        """
+        Zmienia uprawnienia użytkownika.
+        """
+        layout_set = QFormLayout()
+        self.combo_role_id.activated[str].connect(self.on_changed)
+
+        btn_box = QDialogButtonBox()
+        lbl_role = QLabel('Rola:')
+
+        btn_box.setStandardButtons(self.btn_cancel_box | self.btn_ok_box)
+        layout_set.addRow(lbl_role, self.combo_role_id)
+        layout_set.setItem(1, QFormLayout.LabelRole, self.v_spacer)
+        layout_set.setWidget(2, QFormLayout.FieldRole, btn_box)
+        self.dialog_set_permission.setLayout(layout_set)
+
+        btn_box.rejected.connect(self.on_home_clicked)
+        btn_box.accepted.connect(lambda: self.change_permission(user_id))
+
+        self.on_set_permission()
+
     def on_changed(self, text):
         """
         Zamienia nazwę przyjazną użytkownikowi w cyfrę odpowiadającą danej roli.
@@ -294,8 +320,11 @@ class Widget(QWidget):
 
         if self.lbl_title.text() == 'Biblioteka' and self.user.get('roleId') == 1:
             self._user_id = None
-            self.reservation_book(item.text())
-            QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
+            data = self.reservation_book(item.text())
+            if data.status_code == 400:
+                QMessageBox.warning(self, "Błąd", data.text)
+            else:
+                QMessageBox.information(self, "Zarezerwowano", "Podana pozycja została zarezerwowana!")
             self.on_library_clicked()
 
         if self.lbl_title.text() == 'Użytkownicy' and self.user.get('roleId') > 1:
@@ -303,3 +332,9 @@ class Widget(QWidget):
 
         if self.lbl_title.text() == 'Wybierz użytkownika':
             self.borrow_book(self._book_id, item.text())
+
+        if self.lbl_title.text() == 'Zarezerwowane książki':
+            self.delete_reservation(self.tbl_result.item(row, 2).text())
+
+        if self.lbl_title.text() == 'Uprawnienia':
+            self.set_permission(self._user_id)

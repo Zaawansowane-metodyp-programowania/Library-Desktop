@@ -2,6 +2,8 @@ import queue
 import threading
 
 from PySide2 import QtGui
+from PySide2.QtCore import QRegExp
+from PySide2.QtGui import QRegExpValidator
 from PySide2.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QLabel, QLineEdit, QSpacerItem, QSizePolicy, \
     QMessageBox
 
@@ -29,7 +31,12 @@ class Register(QDialog):
         self.edit_email = QLineEdit()
         self.edit_pass2 = QLineEdit()
         self.edit_pass3 = QLineEdit()
+        self.edit_pass2.setEchoMode(QLineEdit.Password)
+        self.edit_pass3.setEchoMode(QLineEdit.Password)
         v_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.regex = QRegExp('^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$')
+        self.validator = QRegExpValidator(self.regex)
+        self.edit_email.setValidator(self.validator)
 
         self.setWindowTitle('Rejestracja')
         self.setWindowIcon(QtGui.QIcon('resources/library_icon.png'))

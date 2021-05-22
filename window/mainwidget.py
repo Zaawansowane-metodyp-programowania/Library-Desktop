@@ -38,10 +38,12 @@ class MainWidget(Widget):
         # Widgety
         self.btn_home = QPushButton('Strona główna')
         self.btn_my_book = QPushButton('Wypożyczone książki')
+        self.btn_reserved = QPushButton('Zarezerwowane książki')
         self.btn_library = QPushButton('Biblioteka')
         self.btn_profile = QPushButton('Profil')
         self.btn_permission = QPushButton(self._txt_permission)
         self.btn_change_passwd = QPushButton(self._txt_change_perm)
+        self.btn_set_permission = QPushButton('Uprawnienia')
         self.btn_logout = QPushButton('Wylogowanie')
         self.btn_add_book = QPushButton('Dodaj nową książkę')
 
@@ -52,14 +54,17 @@ class MainWidget(Widget):
             self.btn_my_book.clicked.connect(self.on_book_clicked_permission)
         else:
             self.btn_my_book.clicked.connect(self.on_book_clicked)
+        self.btn_reserved.clicked.connect(self.on_reserved_clicked)
         self.btn_library.clicked.connect(self.on_library_clicked)
         self.btn_permission.clicked.connect(self.on_permission_clicked)
         if self.user.get('roleId') != 3:
             self.btn_change_passwd.clicked.connect(self.on_change_passwd_clicked)
             self.btn_profile.clicked.connect(self.on_profile_clicked)
         else:
+            self.btn_profile.setText('Usuwanie profili')
             self.btn_change_passwd.clicked.connect(self.on_change_passwd_admin_clicked)
             self.btn_profile.clicked.connect(self.on_profile_admin_clicked)
+        self.btn_set_permission.clicked.connect(self.on_set_permission_clicked)
         self.btn_logout.clicked.connect(self.on_logout_clicked)
         self.btn_next_page.clicked.connect(self.next_page)
         self.btn_back_page.clicked.connect(self.back_page)
@@ -69,10 +74,12 @@ class MainWidget(Widget):
         # Przypisanie widgetów do layoutów
         self.menu_layout.addWidget(self.btn_home)
         self.menu_layout.addWidget(self.btn_my_book)
+        self.menu_layout.addWidget(self.btn_reserved)
         self.menu_layout.addWidget(self.btn_library)
         self.menu_layout.addWidget(self.btn_profile)
         if self.user.get('roleId') == 3:
             self.menu_layout.addWidget(self.btn_permission)
+            self.menu_layout.addWidget(self.btn_set_permission)
         self.menu_layout.addWidget(self.btn_change_passwd)
         self.menu_layout.addItem(self.h_spacer)
         self.menu_layout.addWidget(self.btn_logout)
@@ -110,6 +117,18 @@ class MainWidget(Widget):
         self.lbl_title.setText('Wypożyczone książki')
         self.text_layout.addWidget(self.lbl_title)
         if self.get_book_user_id(user_id):
+            self.text_layout.addWidget(self.tbl_result)
+
+    def on_reserved_clicked(self, user_id=None):
+        """
+        Wyświetla zarezerwowane książki danego użytkownika.
+        """
+        print("Reserved")
+        self.clear_layout()
+        self.tbl_result.clear()
+        self.lbl_title.setText('Zarezerwowane książki')
+        self.text_layout.addWidget(self.lbl_title)
+        if self.get_reservation_user_id(user_id):
             self.text_layout.addWidget(self.tbl_result)
 
     def on_book_clicked_permission(self):
@@ -233,6 +252,42 @@ class MainWidget(Widget):
         self.lbl_title.setText('Utwórz nowe konto z uprawnieniami')
         self.text_layout.addWidget(self.lbl_title)
         self.text_layout.addWidget(self.dialog_permission)
+
+    def on_set_permission_clicked(self):
+        """
+        Wyświetla możliwość zmiany uprawnień konta.
+        """
+        print("permission set")
+        self.clear_layout()
+        self.lbl_title.setText('Uprawnienia')
+        self.text_layout.addWidget(self.lbl_title)
+        self.get_users()
+        self.text_layout.addWidget(self.tbl_result)
+
+    def on_set_permission(self):
+        print("permission set")
+        self.clear_layout()
+        self.lbl_title.setText('Uprawnienia')
+        self.text_layout.addWidget(self.lbl_title)
+        self.text_layout.addWidget(self.dialog_set_permission)
+
+    def change_permission(self, user_id):
+        permission_api = URL + self.get_users_api + '/role/' + str(user_id)
+        jsons = {
+            "roleId": int(self._role_id)
+        }
+
+        x = threading.Thread(
+            target=patch_request,
+            args=(permission_api, jsons, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        print(data)
+        if data.status_code == 200:
+            QMessageBox.information(self, "Zmiana uprawnień", "Uprawnienia zostały zmienione!")
 
     def on_change_passwd_clicked(self):
         """
@@ -424,6 +479,30 @@ class MainWidget(Widget):
         else:
             return False
 
+    def get_reservation_user_id(self, user_id=None):
+        """
+        Pobiera dane na temat zarezerwowanych książek przez konkretnego użytkownika.
+        :param user_id: int
+        :return: boolean
+        """
+        if not user_id:
+            user_id = self.user.get('id')
+        reservation_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + '/reservation/' + str(
+            user_id)
+        x = threading.Thread(
+            target=get_request,
+            args=(reservation_user_id_api, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        if data:
+            self.set_data(data)
+            return True
+        else:
+            return False
+
     def borrow_book_user(self):
         """
         Wyświetla listę użytkowników, dla których dana książka zostanie wypożyczona.
@@ -434,25 +513,22 @@ class MainWidget(Widget):
         self.get_users()
         self.text_layout.addWidget(self.tbl_result)
 
-    def reservation_book(self, book_id, reservation=True):
+    def reservation_book(self, book_id):
         """
         Dokonuje rezerwacji danej książki w wątku.
         :param book_id: int
-        :param reservation: boolean
         """
         url = URL + self.get_books_api + '/reservation/' + str(book_id)
-        jsons = {
-            "reservation": reservation
-        }
         x = threading.Thread(
             target=patch_request,
-            args=(url, jsons, self.user.get('token'), self.que))
+            args=(url, {}, self.user.get('token'), self.que))
 
         x.start()
         x.join()
 
         data = self.que.get()
         print(data)
+        return data
 
     def borrow_book(self, book_id, user_id):
         """
@@ -794,3 +870,27 @@ class MainWidget(Widget):
         self.edit_language_book.setText(jsons.get('language'))
         self.edit_book_description.setPlainText(jsons.get('bookDescription'))
         self.text_layout.addWidget(self.dialog_book)
+
+    def delete_reservation(self, book_id):
+        """
+        Zwraca zarezerwowaną książkę.
+        :param book_id: int
+        """
+        print("Return book reserved")
+
+        reservation_del_api = URL + self.get_books_api + '/reservation/' + str(book_id)
+        x = threading.Thread(
+            target=delete_request,
+            args=(reservation_del_api, self.user.get('token'), self.que))
+
+        x.start()
+        x.join()
+
+        data = self.que.get()
+        print(data)
+        if data:
+            QMessageBox.information(self,
+                                    "Pozycja usunięta",
+                                    "Podana pozycja została usunięta z listy zarezerwowanych!")
+
+        self.on_reserved_clicked()
