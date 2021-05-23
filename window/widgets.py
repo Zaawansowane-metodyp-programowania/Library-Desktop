@@ -2,8 +2,7 @@ from PySide2.QtCore import Qt, QRegExp
 from PySide2.QtGui import QFont, QRegExpValidator
 from PySide2.QtWidgets import QWidget, QLabel, QLineEdit, QTableWidget, QDialog, QDialogButtonBox, QSpacerItem, \
     QSizePolicy, QFormLayout, QAbstractItemView, QPushButton, QMessageBox, QComboBox, QHBoxLayout, \
-    QVBoxLayout, QPlainTextEdit, QAction, QHeaderView
-from qt_material import list_themes
+    QVBoxLayout, QPlainTextEdit
 
 from window.home_text_browser import HomeTextBrowser
 
@@ -19,6 +18,7 @@ class Widget(QWidget):
         self.library = QWidget()
         self.get_books_api = 'books'
         self.get_users_api = 'users'
+        self.reservation_api = '/reservation/'
         self.user = user
         self.h_spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.v_spacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)

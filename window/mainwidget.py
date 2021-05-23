@@ -2,7 +2,7 @@ import json
 import queue
 import threading
 
-from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QMessageBox, QDialog
+from PySide2.QtWidgets import QVBoxLayout, QHBoxLayout, QPushButton, QTableWidgetItem, QMessageBox, QDialog, QLabel
 from email_validator import validate_email, EmailNotValidError
 
 from api_connect.delete_request import delete_request
@@ -29,6 +29,8 @@ class MainWidget(Widget):
         self._txt_change_perm = 'Zmiana hasła'
         self._txt_permission = 'Utwórz konto z uprawnieniami'
         self._txt_bad_data = 'Błędne dane'
+        self.page = 0
+        self.lbl_page = QLabel()
 
         # Layouty
         self.layout = QVBoxLayout()
@@ -74,7 +76,8 @@ class MainWidget(Widget):
         # Przypisanie widgetów do layoutów
         self.menu_layout.addWidget(self.btn_home)
         self.menu_layout.addWidget(self.btn_my_book)
-        self.menu_layout.addWidget(self.btn_reserved)
+        if self.user.get('roleId') == 1:
+            self.menu_layout.addWidget(self.btn_reserved)
         self.menu_layout.addWidget(self.btn_library)
         self.menu_layout.addWidget(self.btn_profile)
         if self.user.get('roleId') == 3:
@@ -148,6 +151,7 @@ class MainWidget(Widget):
         Wyświetla następną stronę książek w bibliotece.
         """
         self.page_number += 1
+        self.lbl_page.setText('Strona {}/{}'.format(self.page_number, self.page))
         if self.lbl_title.text() == 'Biblioteka':
             self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
                            sort_direction=self.sorted_direction)
@@ -157,6 +161,7 @@ class MainWidget(Widget):
         Wyświetla poprzednią stronę książek w bibliotece.
         """
         self.page_number -= 1
+        self.lbl_page.setText('Strona {}/{}'.format(self.page_number, self.page))
         if self.lbl_title.text() == 'Biblioteka':
             self.get_books(self.page_number, search=self.edit_search.text(), sort_by=self.sorted_by,
                            sort_direction=self.sorted_direction)
@@ -218,6 +223,10 @@ class MainWidget(Widget):
         self.text_layout.addWidget(self.btn_add_book)
         self.btn_add_book.setStyleSheet("color: #17a2b8; border-color : #17a2b8")
         self.get_books(self.page_number)
+
+        print(self.page_number, self.page)
+        self.lbl_page.setText('Strona {}/{}'.format(self.page_number, self.page))
+        self.text_layout.addWidget(self.lbl_page)
 
     def on_profile_clicked(self):
         """
@@ -394,6 +403,7 @@ class MainWidget(Widget):
         x.join()
 
         data = self.que.get()
+        self.page = data.get('totalPages')
 
         if data.get('itemFrom') == 1:
             self.btn_back_page.setEnabled(False)
@@ -487,7 +497,7 @@ class MainWidget(Widget):
         """
         if not user_id:
             user_id = self.user.get('id')
-        reservation_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + '/reservation/' + str(
+        reservation_user_id_api = URL + self.get_books_api + '/' + self.get_users_api[:-1] + self.reservation_api + str(
             user_id)
         x = threading.Thread(
             target=get_request,
@@ -518,7 +528,7 @@ class MainWidget(Widget):
         Dokonuje rezerwacji danej książki w wątku.
         :param book_id: int
         """
-        url = URL + self.get_books_api + '/reservation/' + str(book_id)
+        url = URL + self.get_books_api + self.reservation_api + str(book_id)
         x = threading.Thread(
             target=patch_request,
             args=(url, {}, self.user.get('token'), self.que))
@@ -541,7 +551,7 @@ class MainWidget(Widget):
             "userId": int(user_id)
         }
 
-        self.reservation_book(book_id, False)
+        self.reservation_book(book_id)
 
         x = threading.Thread(
             target=patch_request,
@@ -551,7 +561,7 @@ class MainWidget(Widget):
         x.join()
 
         data = self.que.get()
-        print(data.text)
+        print(data)
         if data:
             QMessageBox.information(self, "Wypożyczono", "Podana pozycja została wypożyczona!")
             self.on_library_clicked()
@@ -878,7 +888,7 @@ class MainWidget(Widget):
         """
         print("Return book reserved")
 
-        reservation_del_api = URL + self.get_books_api + '/reservation/' + str(book_id)
+        reservation_del_api = URL + self.get_books_api + self.reservation_api + str(book_id)
         x = threading.Thread(
             target=delete_request,
             args=(reservation_del_api, self.user.get('token'), self.que))
