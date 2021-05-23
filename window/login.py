@@ -39,6 +39,7 @@ class Login(QDialog):
         self.buttonBox.accepted.connect(self.login_in)
         self.buttonBox.rejected.connect(self.reject)
         self.btn_register.clicked.connect(self.register)
+        self.buttonBox.button(QDialogButtonBox.Ok)
 
         self.layout = QFormLayout()
         self.layout.setWidget(0, QFormLayout.LabelRole, self.lbl_login)
