@@ -11,7 +11,7 @@ Program ten został zaprojektowany przy użyciu technologii PySide 2 (Qt5).
 Został stworzony na potrzeby projektu łączącego zewnętrzne API z aplikacją 
 desktopową. Program ten można zainstalować z poniższą instrukcją, albo przejść
 do wydań po prawej stronie (Releases), gdzie będzie możliwość pobrania pliku
-instalacyjnego. Do pobrania [TUTAJ](https://github.com/Zaawansowane-metodyp-programowania/Library-Desktop/releases/latest)
+instalacyjnego. Do pobrania [TUTAJ](https://github.com/Zaawansowane-metodyp-programowania/Library-Desktop/releases/latest).
 
 ## Setup
 Aby uruchomić projekt, upewnij się, że masz zainstalowanego Pythona w wersji 

@@ -38,9 +38,3 @@ def test_login_edit(login):
     assert login.edit_login.text() == ''
     assert login.edit_passwd.text() == ''
     assert login.edit_passwd.echoMode() is QLineEdit.EchoMode.Password
-
-# def test_login(login2):
-#     login2.edit_login.setText('example@example.com')
-#     login2.edit_passwd.setText('example')
-#
-#     qtbot.mouseClick(login2.buttonBox.button(QDialogButtonBox.Ok), QtCore.Qt.LeftButton)
